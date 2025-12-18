@@ -3,45 +3,46 @@ package com.example.smartshop
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
+import com.example.smartshop.data.local.AppDatabase
+import com.example.smartshop.data.remote.FirestoreService
+import com.example.smartshop.data.repository.ProductRepository
+import com.example.smartshop.navigation.NavGraph
 import com.example.smartshop.ui.theme.SmartShopTheme
+import com.example.smartshop.viewmodel.ProductViewModel
+import com.example.smartshop.viewmodel.ProductViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        // Initialisation Room + Repository
+        val db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "smartshop-db"
+        ).build()
+
+        val repository = ProductRepository(
+            dao = db.productDao(),
+            firestore = FirestoreService()
+        )
+
+        // 🔥 Créer le ViewModel avec Factory
+        val factory = ProductViewModelFactory(repository)
+        val productViewModel = ViewModelProvider(this, factory)[ProductViewModel::class.java]
+
         setContent {
             SmartShopTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                val navController = rememberNavController()
+
+                NavGraph(
+                    navController = navController,
+                    productViewModel = productViewModel
+                )
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SmartShopTheme {
-        Greeting("Android")
     }
 }
